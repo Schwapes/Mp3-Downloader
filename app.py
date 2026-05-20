@@ -60,6 +60,7 @@ def download_song():
     ydl_opts = {
         'format': 'bestaudio/best',
         'outtmpl': f'{file_path}.%(ext)s',
+        'cookiesfrombrowser': ('chrome',),
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
