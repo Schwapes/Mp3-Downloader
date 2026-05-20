@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MP3 Downloader</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #ffffff;
+            font-size: 28px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .search-container {
+            display: flex;
+            width: 100%;
+            max-width: 650px;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input {
+            flex: 1;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 6px;
+            background-color: #2b2b2b;
+            color: white;
+            font-size: 16px;
+        }
+        input:focus {
+            outline: 2px solid #1f6aa5;
+        }
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            background-color: #1f6aa5;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #144d77;
+        }
+        .scroll-frame {
+            width: 100%;
+            max-width: 860px;
+            background-color: #242424;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 450px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        .song-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #2b2b2b;
+            padding: 12px 20px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+        }
+        .song-info {
+            font-size: 15px;
+        }
+        .download-btn {
+            background-color: #2fa572;
+        }
+        .download-btn:hover {
+            background-color: #1f704d;
+        }
+        .download-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>MP3 Downloader</h1>
+
+    <div class="search-container">
+        <input type="text" id="artistInput" placeholder="Sanatçı veya şarkı adı yaz...">
+        <button onclick="searchMusic()">Ara</button>
+    </div>
+
+    <div class="scroll-frame" id="songsContainer">
+        <p style="text-align: center; color: #888;">Henüz arama yapılmadı.</p>
+    </div>
+
+    <script>
+        async function searchMusic() {
+            const artist = document.getElementById('artistInput').value;
+            const container = document.getElementById('songsContainer');
+            
+            if (!artist) return;
+            
+            container.innerHTML = "<p style='text-align:center; color:#1f6aa5;'>Aranıyor...</p>";
+
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ artist: artist })
+                });
+                
+                const songs = await response.json();
+                container.innerHTML = "";
+
+                if (songs.error) {
+                    container.innerHTML = `<p style='text-align:center; color:red;'>Hata: ${songs.error}</p>`;
+                    return;
+                }
+
+                if (songs.length === 0) {
+                    container.innerHTML = "<p style='text-align:center;'>Şarkı bulunamadı.</p>";
+                    return;
+                }
+
+                songs.forEach(song => {
+                    const item = document.createElement('div');
+                    item.className = 'song-item';
+
+                    const info = document.createElement('div');
+                    info.className = 'song-info';
+                    info.innerText = `${song.title} - ${song.artist}`;
+
+                    const btn = document.createElement('button');
+                    btn.className = 'download-btn';
+                    btn.innerText = 'İndir';
+                    
+                    btn.onclick = () => {
+                        btn.innerText = 'İndiriliyor...';
+                        btn.disabled = true;
+                        
+                        // İndirme isteğini başlatır (Tarayıcı otomatik dosya indirmeyi tetikler)
+                        window.location.href = `/download?video_id=${song.video_id}&title=${encodeURIComponent(song.title)}`;
+                        
+                        // İndirme tetiklendikten sonra butonu geri açıyoruz
+                        setTimeout(() => {
+                            btn.innerText = 'İndir';
+                            btn.disabled = false;
+                        }, 6000);
+                    };
+
+                    item.appendChild(info);
+                    item.appendChild(btn);
+                    container.appendChild(item);
+                });
+
+            } catch (error) {
+                container.innerHTML = "<p style='text-align:center; color:red;'>Sunucuya bağlanırken bir hata oluştu!</p>";
+                console.error(error);
+            }
+        }
+
+        // Enter tuşuna basınca aramayı tetikle
+        document.getElementById("artistInput").addEventListener("keyup", function(event) {
+            if (event.key === "Enter") {
+                searchMusic();
+            }
+        });
+    </script>
+</body>
+</html>
